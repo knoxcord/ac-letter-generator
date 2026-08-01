@@ -11,9 +11,6 @@ namespace LetterGenerator.Rendering;
 /// </summary>
 public class LetterRenderer(IStationarySource stationarySource) : ILetterRenderer
 {
-    // TODO: move this to DI
-    private readonly LetterTemplates _letters = new();
-
     private static readonly SKPoint TitlePoint = new(150.0f, 100.0f);
     private static readonly SKRect BodyArea = new(200.0f, 200.0f, 1030.0f, 580.0f);
     private static readonly SKPoint AuthorPoint = new(1100.0f, 700.0f);
@@ -39,7 +36,7 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
 
     public async Task<byte[]> RenderAsync(GenerateLetterRequest request, CancellationToken cancellationToken = default)
     {
-        var (letterType, letter) = _letters.GetRandomLetter();
+        var (letterType, letter) = LetterTemplates.GetRandomLetter();
 
         // Get the background image
         await using var stationary = await stationarySource.OpenStationary(letterType, cancellationToken);
@@ -84,13 +81,13 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
     private static void DrawBody(SKCanvas canvas, string text, SKFont bodyFont, SKPaint paint, SKPaint? paintBackground)
     {
         // First adjust font and/or text length to ensure the lines will fit in the template body area
-        var lines = FitToBodyArea(text, bodyFont);
+        var (lines, adjustedFont) = FitToBodyArea(text, bodyFont);
 
         if (lines.Count < 1)
             return;
 
-        var metrics = bodyFont.Metrics;
-        var adjustedLineHeight = GetBodyLineHeight(bodyFont);
+        var metrics = adjustedFont.Metrics;
+        var adjustedLineHeight = GetBodyLineHeight(adjustedFont);
 
         // The distance between the top of the first line of text to the bottom of the last line of text.
         // If there is only one line then visible text height is just the height of the glyphs. If there are multiple
@@ -108,7 +105,7 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
 
         // Find the widest line so that we can build a single rectangular background rather than having each line
         //   render with a background only long enough to cover its text
-        var widestLineWidth = lines.Max(line => GetLineWidth(line, bodyFont));
+        var widestLineWidth = lines.Max(line => GetLineWidth(line, adjustedFont));
         var left = BodyArea.MidX - widestLineWidth / 2;
 
         if (paintBackground != null)
@@ -118,11 +115,11 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
             // Ascent is negative here so adding it to firstBaseline expands rectangle's top edge _up_.
             // Descent is positive so adding it to the lastBaseline moves the rectangle's bottom edge _down_.
             var backgroundRectangle = new SKRect(left, firstBaseline + metrics.Ascent, left + widestLineWidth, lastBaseline + metrics.Descent);
-            DrawBackground(canvas, backgroundRectangle, bodyFont, paintBackground);
+            DrawBackground(canvas, backgroundRectangle, adjustedFont, paintBackground);
         }
 
         for (var line = 0; line < lines.Count; line++)
-            DrawSpacedText(lines[line], left, firstBaseline + line * adjustedLineHeight, canvas, bodyFont, paint);
+            DrawSpacedText(lines[line], left, firstBaseline + line * adjustedLineHeight, canvas, adjustedFont, paint);
     }
 
     /// <summary>
@@ -185,7 +182,7 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
     /// </summary>
     // TODO: This is a load bearing mutation of the given font. We should return a copy instead of just quietly
     //   changing it
-    private static List<string> FitToBodyArea(string text, SKFont font)
+    private static (List<string>, SKFont adjustedFont) FitToBodyArea(string text, SKFont font)
     {
         while (true)
         {
@@ -204,14 +201,14 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
             //   the lines will be drawn at
             if (lines.Count <= lineLimit)
             {
-                return lines;
+                return (lines, font);
             }
 
             // If we cant reduce font size anymore, just cut all the lines after the lineLimit
             if (font.Size - BodyTextSizeStep < MinBodyTextSize)
             {
                 lines.RemoveRange(lineLimit, lines.Count - lineLimit);
-                return lines;
+                return (lines, font);
             }
 
             // If we got here then text drawn with the current font size exceeded the line limit, so reduce font

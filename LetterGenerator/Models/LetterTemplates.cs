@@ -2,9 +2,9 @@ using System.Collections.Frozen;
 
 namespace LetterGenerator.Models;
 
-public class LetterTemplates
+public static class LetterTemplates
 {
-    private readonly FrozenDictionary<LetterType, LetterTemplate> Metadata = new Dictionary<LetterType, LetterTemplateOptions>
+    private static readonly FrozenDictionary<LetterType, LetterTemplate> Metadata = new Dictionary<LetterType, LetterTemplateOptions>
     {
         [LetterType.Acorn] = new()
         {
@@ -317,15 +317,7 @@ public class LetterTemplates
         }
     }.ToFrozenDictionary(entry => entry.Key, entry => new LetterTemplate(entry.Value));
 
-    public LetterTemplate? GetLetter(LetterType letterType)
-    {
-        if (Metadata.TryGetValue(letterType, out var letterMetadata))
-            return letterMetadata;
-        
-        return null;
-    }
-
-    public (LetterType, LetterTemplate) GetRandomLetter()
+    public static (LetterType, LetterTemplate) GetRandomLetter()
     {
         var availableLetters = GetAvailableLetters().ToList();
         var randomIndex = Random.Shared.Next(availableLetters.Count);
@@ -333,7 +325,7 @@ public class LetterTemplates
         return (randomLetter.Key, randomLetter.Value);
     }
 
-    private IEnumerable<KeyValuePair<LetterType, LetterTemplate>> GetAvailableLetters()
+    private static IEnumerable<KeyValuePair<LetterType, LetterTemplate>> GetAvailableLetters()
     {
         var dateTime = DateTime.Now;
         var date = dateTime.Month * 100 + dateTime.Day;
