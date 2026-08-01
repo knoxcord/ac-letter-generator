@@ -1,0 +1,7 @@
+services:
+  letter-generator:
+    build: .
+    image: ghcr.io/knoxcord/ac-letter-generator:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5258:8080"

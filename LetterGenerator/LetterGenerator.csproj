@@ -7,12 +7,6 @@
     <Version>0.0.1</Version>
   </PropertyGroup>
 
-  <!--
-    Neither folder matches the Web SDK's default Content globs, so both need listing explicitly
-    or they are missing from the build output and from publish. Paths are resolved against the
-    content root at runtime, which is the project directory in development and the app directory
-    once published.
-  -->
   <ItemGroup>
     <Content Include="Fonts/**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="Images/**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
@@ -23,6 +17,12 @@
     <PackageReference Include="Microsoft.OpenApi" Version="[2.7.5,]" />
     <PackageReference Include="NSwag.AspNetCore" Version="14.7.1" />
     <PackageReference Include="SkiaSharp" Version="4.150.1" />
+    <!--
+      The SkiaSharp metapackage carries only Windows and macOS natives, so the Linux container
+      needs libSkiaSharp brought in explicitly. The NoDependencies build is sufficient because the
+      typeface is loaded from Fonts/ by path and nothing touches SKFontManager
+    -->
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="4.150.1" />
   </ItemGroup>
 
 </Project>

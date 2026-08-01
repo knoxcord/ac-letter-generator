@@ -1,0 +1,86 @@
+name: PR checks
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Cancel superseded runs when new commits are pushed to the same PR.
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify version was incremented
+        # The release workflow tags the image from <Version>, so a version that doesn't move
+        # would overwrite an already-published tag and destroy that rollback point.
+        run: |
+          csproj="LetterGenerator/LetterGenerator.csproj"
+          base_ref="${{ github.base_ref }}"
+          git fetch --depth=1 origin "$base_ref"
+          base=$(git show "FETCH_HEAD:$csproj" | grep -oPm1 '(?<=<Version>)[^<]+')
+          head=$(grep -oPm1 '(?<=<Version>)[^<]+' "$csproj")
+          echo "base ($base_ref) = $base"
+          echo "head (PR)        = $head"
+          if [ "$base" = "$head" ]; then
+            echo "::error file=$csproj::Version not incremented (still $head). Bump <Version> in $csproj."
+            exit 1
+          fi
+          highest=$(printf '%s\n%s\n' "$base" "$head" | sort -V | tail -1)
+          if [ "$highest" != "$head" ]; then
+            echo "::error file=$csproj::Version $head is lower than base $base. It must be incremented."
+            exit 1
+          fi
+          echo "Version bump OK: $base -> $head"
+
+  test:
+    needs: version-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-
+
+      - name: Test
+        # Builds both projects on the way through, so this typechecks the app as well.
+        run: dotnet test --configuration Release
+
+  docker-build:
+    needs: version-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image
+        # Same build the release workflow runs, minus the push - so a broken Dockerfile or a
+        # missing Linux native is caught on the PR rather than on merge.
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          platforms: linux/amd64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -16,9 +16,9 @@ builder.Services.AddSingleton<ILetterRenderer, LetterRenderer>();
 
 var app = builder.Build();
 
-// Resolved eagerly so a missing or empty template directory fails at startup rather than
-// on the first request.
+// Resolved eagerly so failures happen at startup rather than upon first request
 app.Services.GetRequiredService<IStationarySource>();
+app.Services.GetRequiredService<ILetterRenderer>();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -28,8 +28,6 @@ if (app.Environment.IsDevelopment())
     // NSwag is used only for the UI, pointed at the document above
     app.UseSwaggerUi(settings => settings.DocumentPath = "/openapi/v1.json");
 }
-
-app.UseHttpsRedirection();
 
 app.MapPost("/letter", async (GenerateLetterRequest request, ILetterRenderer renderer, CancellationToken cancellationToken) =>
     {
