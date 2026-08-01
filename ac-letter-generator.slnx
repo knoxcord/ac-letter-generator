@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="LetterGenerator.Tests/LetterGenerator.Tests.csproj" />
+  <Project Path="LetterGenerator/LetterGenerator.csproj" />
+</Solution>

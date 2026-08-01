@@ -4,7 +4,7 @@ namespace LetterGenerator.Models;
 
 public static class LetterTemplates
 {
-    private static readonly FrozenDictionary<LetterType, LetterTemplate> Metadata = new Dictionary<LetterType, LetterTemplateOptions>
+    public static readonly FrozenDictionary<LetterType, LetterTemplate> Metadata = new Dictionary<LetterType, LetterTemplateOptions>
     {
         [LetterType.Acorn] = new()
         {
@@ -129,7 +129,7 @@ public static class LetterTemplates
         [LetterType.FathersDay] = new()
         {
             TitleColor = "#010101",
-            AvailableRange = (0601,0630)
+            AvailableRange = (0601, 0630)
         },
         [LetterType.FestiveTree] = new()
         {
@@ -319,15 +319,14 @@ public static class LetterTemplates
 
     public static (LetterType, LetterTemplate) GetRandomLetter()
     {
-        var availableLetters = GetAvailableLetters().ToList();
+        var availableLetters = GetAvailableLetters(DateTime.Now).ToList();
         var randomIndex = Random.Shared.Next(availableLetters.Count);
         var randomLetter = availableLetters[randomIndex];
         return (randomLetter.Key, randomLetter.Value);
     }
 
-    private static IEnumerable<KeyValuePair<LetterType, LetterTemplate>> GetAvailableLetters()
+    public static IEnumerable<KeyValuePair<LetterType, LetterTemplate>> GetAvailableLetters(DateTime dateTime)
     {
-        var dateTime = DateTime.Now;
         var date = dateTime.Month * 100 + dateTime.Day;
         return Metadata.Where(metadata => IsAvailable(metadata.Value, date));
     }
