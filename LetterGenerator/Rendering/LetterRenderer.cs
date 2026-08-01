@@ -1,4 +1,3 @@
-using System.Text;
 using LetterGenerator.DTOs;
 using LetterGenerator.Interfaces;
 using LetterGenerator.Models;
