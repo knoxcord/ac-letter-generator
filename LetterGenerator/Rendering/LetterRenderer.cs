@@ -18,10 +18,6 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
     private const float BackgroundPaddingX = 20.0f;
     private const float BackgroundPaddingY = 15.0f;
 
-    // Skia has no tracking setting, so we have to implement our own by drawing line one character at a time.
-    private const float LetterSpacing = 3.0f;
-
-    // Body text scales to support larger amounts of text
     private const float TextSize = 40.0f;
     private const float MinBodyTextSize = 20.0f;
     private const float BodyTextSizeStep = 2.0f;
@@ -105,7 +101,7 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
 
         // Find the widest line so that we can build a single rectangular background rather than having each line
         //   render with a background only long enough to cover its text
-        var widestLineWidth = lines.Max(line => GetLineWidth(line, adjustedFont));
+        var widestLineWidth = lines.Max(line => TextHelpers.GetLineWidth(line, adjustedFont));
         var left = BodyArea.MidX - widestLineWidth / 2;
 
         if (paintBackground != null)
@@ -119,7 +115,7 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
         }
 
         for (var line = 0; line < lines.Count; line++)
-            DrawSpacedText(lines[line], left, firstBaseline + line * adjustedLineHeight, canvas, adjustedFont, paint);
+            TextHelpers.DrawSpacedText(canvas, lines[line], left, firstBaseline + line * adjustedLineHeight, adjustedFont, paint);
     }
 
     /// <summary>
@@ -151,7 +147,7 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
         //   it is always rendered left-to-right.
         // This makes letter spacing easier and matches AC center align format where the paragraph
         //   is centered but the text is left aligned
-        var width = GetLineWidth(text, font);
+        var width = TextHelpers.GetLineWidth(text, font);
         var left = align switch
         {
             SKTextAlign.Center => point.X - width / 2,
@@ -162,7 +158,7 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
         var fontMetrics = font.Metrics;
         var backgroundRectangle = new SKRect(left, point.Y + fontMetrics.Ascent, left + width, point.Y + fontMetrics.Descent);
         DrawBackground(canvas, backgroundRectangle, font, paintBackground);
-        DrawSpacedText(text, left, point.Y, canvas, font, paintText);
+        TextHelpers.DrawSpacedText(canvas, text, left, point.Y, font, paintText);
     }
 
     /// <summary>
@@ -180,8 +176,6 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
     /// Wraps <paramref name="text"/> to the body area, stepping <paramref name="font"/> down a size at a
     /// time until every line fits. Text that still does not fit at <see cref="MinBodyTextSize"/> is cut off.
     /// </summary>
-    // TODO: This is a load bearing mutation of the given font. We should return a copy instead of just quietly
-    //   changing it
     private static (List<string>, SKFont adjustedFont) FitToBodyArea(string text, SKFont font)
     {
         while (true)
@@ -195,7 +189,7 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
             //   tell whether the line limit was hit or not.
             // If we get a number of lines less than or equal to the lineLimit back, then we know it fits.
             // If we get a number of lines greater than the limit (i.e. lineLimit + 1), we know text was cut.
-            var lines = WrapLines(text, font, BodyArea.Width, lineLimit + 1);
+            var lines = TextHelpers.WrapLines(text, font, BodyArea.Width, lineLimit + 1);
 
             // The lines fit, so go ahead and return them as they are. Whatever the font size was left at is what
             //   the lines will be drawn at
@@ -215,127 +209,5 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
             //   size and try again
             font.Size -= BodyTextSizeStep;
         }
-    }
-
-    /// <summary>
-    /// Wrap words in <paramref name="text"/> into lines no wider than <paramref name="maxWidth"/>,
-    /// stopping after <paramref name="maxLines"/>. Anything past that limit is dropped, since there is
-    /// nowhere left on the card to put it. Line breaks in the text are kept as breaks to preserve formatting.
-    /// </summary>
-    private static List<string> WrapLines(string text, SKFont font, float maxWidth, int maxLines)
-    {
-        var lines = new List<string>();
-
-        if (maxLines <= 0 || string.IsNullOrWhiteSpace(text))
-        {
-            return lines;
-        }
-
-        // Normalize line endings and remove any preceding/trailing line breaks
-        var paragraphs = text.ReplaceLineEndings("\n").Trim().Split('\n');
-        var line = new StringBuilder();
-
-        foreach (var paragraph in paragraphs)
-        {
-            line.Clear();
-
-            foreach (var word in SplitWordsLongerThanWidth(paragraph, font, maxWidth))
-            {
-                if (line.Length == 0)
-                {
-                    line.Append(word);
-                    continue;
-                }
-
-                if (GetLineWidth($"{line} {word}", font) <= maxWidth)
-                {
-                    line.Append(' ').Append(word);
-                    continue;
-                }
-
-                lines.Add(line.ToString());
-
-                if (lines.Count == maxLines)
-                    return lines;
-
-                line.Clear().Append(word);
-            }
-
-            // Add whatever the paragraph ended on, which is just an empty string if the author left a blank line
-            lines.Add(line.ToString());
-
-            if (lines.Count == maxLines)
-                return lines;
-        }
-
-        return lines;
-    }
-
-    /// <summary>
-    /// Splits any word longer than <paramref name="maxWidth"/> into separate pieces.
-    /// This prevents something like a url or long text without whitespace from flowing off the card
-    /// </summary>
-    private static IEnumerable<string> SplitWordsLongerThanWidth(string text, SKFont font, float maxWidth)
-    {
-        // Split on any whitespace
-        foreach (var word in text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries))
-        {
-            if (GetLineWidth(word, font) <= maxWidth)
-            {
-                yield return word;
-                continue;
-            }
-
-            var piece = new StringBuilder();
-            foreach (var rune in word.EnumerateRunes())
-            {
-                var character = rune.ToString();
-
-                // Split words at the point where they reach max length
-                if (piece.Length > 0 && GetLineWidth($"{piece}{character}", font) > maxWidth)
-                {
-                    yield return piece.ToString();
-                    piece.Clear();
-                }
-
-                piece.Append(character);
-            }
-
-            if (piece.Length > 0)
-            {
-                yield return piece.ToString();
-            }
-        }
-    }
-
-    /// <summary>
-    /// Draws <paramref name="text"/> from a left-hand origin with <see cref="LetterSpacing"/> added between characters
-    /// </summary>
-    private static void DrawSpacedText(string text, float x, float y, SKCanvas canvas, SKFont font, SKPaint paint)
-    {
-        var currentX = x;
-
-        foreach (var rune in text.EnumerateRunes())
-        {
-            var character = rune.ToString();
-            canvas.DrawText(character, currentX, y, SKTextAlign.Left, font, paint);
-            currentX += font.MeasureText(character) + LetterSpacing;
-        }
-    }
-
-    /// <summary>
-    /// Calculates <paramref name="text"/> line width with <see cref="LetterSpacing"/> added between characters
-    /// </summary>
-    private static float GetLineWidth(string text, SKFont font)
-    {
-        var width = 0.0f;
-
-        foreach (var rune in text.EnumerateRunes())
-        {
-            width += font.MeasureText(rune.ToString()) + LetterSpacing;
-        }
-
-        // The loop leaves a trailing gap after the last character that is not part of the text's width.
-        return width > 0.0f ? width - LetterSpacing : 0.0f;
     }
 }
