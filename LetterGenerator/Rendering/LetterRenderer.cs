@@ -10,9 +10,9 @@ namespace LetterGenerator.Rendering;
 /// </summary>
 public class LetterRenderer(IStationarySource stationarySource) : ILetterRenderer
 {
-    private static readonly SKPoint TitlePoint = new(150.0f, 100.0f);
+    private static readonly SKPoint TitlePoint = new(150.0f, 110.0f);
     private static readonly SKRect BodyArea = new(200.0f, 200.0f, 1030.0f, 580.0f);
-    private static readonly SKPoint AuthorPoint = new(1100.0f, 700.0f);
+    private static readonly SKPoint ValedictionPoint = new(1100.0f, 700.0f);
 
     private const float BackgroundPaddingX = 20.0f;
     private const float BackgroundPaddingY = 15.0f;
@@ -44,7 +44,7 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
         var canvas = surface.Canvas;
         canvas.DrawBitmap(bitmap, new SKPoint(0, 0), SKSamplingOptions.Default);
 
-        // Shared by title and author text
+        // Shared by title and valediction text
         using var font = new SKFont { Typeface = _bodyTypeface, Size = TextSize };
 
         // Only used by body text since it can be scaled
@@ -53,7 +53,7 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
         // Setup text colors
         using var paintTitle = new SKPaint { Color = letter.TitleColor, IsAntialias = true };
         using var paintBody = new SKPaint { Color = letter.BodyColor, IsAntialias = true };
-        using var paintAuthor = new SKPaint { Color = letter.AuthorColor, IsAntialias = true };
+        using var paintValediction = new SKPaint { Color = letter.ValedictionColor, IsAntialias = true };
 
         // Some backgrounds are busy enough to require a text background, so set that up here
         using SKPaint? paintBackground = letter.TextBackgroundColor.HasValue
@@ -62,7 +62,7 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
 
         DrawText(canvas, request.Title, TitlePoint, SKTextAlign.Left, font, paintTitle, paintBackground);
         DrawBody(canvas, request.Body, bodyFont, paintBody, paintBackground);
-        DrawText(canvas, request.Author, AuthorPoint, SKTextAlign.Right, font, paintAuthor, paintBackground);
+        DrawText(canvas, request.Valediction, ValedictionPoint, SKTextAlign.Right, font, paintValediction, paintBackground);
 
         using var flatImage = surface.Snapshot();
         using var data = flatImage.Encode(SKEncodedImageFormat.Webp, 90);

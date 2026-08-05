@@ -84,7 +84,7 @@ public static class LetterTemplates
         {
             TitleColor = "#313953",
             BodyColor = "#0b509e",
-            AuthorColor = "#fbfdff",
+            ValedictionColor = "#fbfdff",
             AvailableRange = (0601, 0831)
         },
         [LetterType.CoolCool] = new()
@@ -124,7 +124,7 @@ public static class LetterTemplates
         {
             TitleColor = "#ea61dd",
             BodyColor = "#6733e5",
-            AuthorColor = "#fe973d"
+            ValedictionColor = "#fe973d"
         },
         [LetterType.FathersDay] = new()
         {
@@ -140,7 +140,7 @@ public static class LetterTemplates
         {
             TitleColor = "#ffbaf4",
             BodyColor = "#c9a3ff",
-            AuthorColor = "#92a7f7",
+            ValedictionColor = "#92a7f7",
             TextBackgroundColor = "#362a98"
         },
         [LetterType.FlowerBouquet] = new()
@@ -183,7 +183,7 @@ public static class LetterTemplates
         {
             TitleColor = "#fed04b",
             BodyColor = "#fe9e34",
-            AuthorColor = "#fdd347",
+            ValedictionColor = "#fdd347",
             AvailableRange = (1001, 1031)
         },
         [LetterType.HappyClovers] = new()
