@@ -6,5 +6,5 @@ public class GenerateLetterRequest
 
     public required string Body { get; set; }
 
-    public required string Author { get; set; }
+    public required string Valediction { get; set; }
 }
