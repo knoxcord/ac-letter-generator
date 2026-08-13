@@ -20,13 +20,14 @@ Responds with `image/webp`. In development, Swagger UI is served at `/swagger`.
 ```sh
 docker compose up --build              # listens on 127.0.0.1:5258
 dotnet run --project LetterGenerator   # listens on localhost:5258
+./scripts/update-emoji.sh              # refresh the bundled Twemoji artwork
 ```
 
 ## Attribution
 
-Emoji graphics are Twemoji, copyright 2019 Twitter, Inc and other contributors, licensed under
-[CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/). See
-[LetterGenerator/Emoji/ATTRIBUTION.md](LetterGenerator/Emoji/ATTRIBUTION.md).
+Emoji graphics are [Twemoji](https://github.com/jdecked/twemoji), copyright (c) 2022-present Jason
+Sofonia & Justine De Caires and copyright (c) 2014-2021 Twitter, Inc and other contributors,
+licensed under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 Animal Crossing stationery designs and the Seurat typeface are property of Nintendo, used here for a
 personal, non-commercial project.
