@@ -14,12 +14,18 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
     private static readonly SKRect BodyArea = new(200.0f, 200.0f, 1030.0f, 580.0f);
     private static readonly SKPoint ValedictionPoint = new(1100.0f, 700.0f);
 
+    // The width scaling tries to keep the valediction within, reaching back to the title's left margin
+    private const float ValedictionMaxWidth = 950.0f;
+
     private const float BackgroundPaddingX = 20.0f;
     private const float BackgroundPaddingY = 15.0f;
 
     private const float TextSize = 40.0f;
+
+    // How small body and valediction text may each be scaled to fit their areas
     private const float MinBodyTextSize = 20.0f;
-    private const float BodyTextSizeStep = 2.0f;
+    private const float MinValedictionTextSize = 24.0f;
+    private const float TextSizeStep = 2.0f;
 
     // Reduce the line spacing of the font a bit to look more like AC
     private const float BodyLineHeightAdjustment = 0.75f;
@@ -44,11 +50,11 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
         var canvas = surface.Canvas;
         canvas.DrawBitmap(bitmap, new SKPoint(0, 0), SKSamplingOptions.Default);
 
-        // Shared by title and valediction text
-        using var font = new SKFont { Typeface = _bodyTypeface, Size = TextSize };
+        using var titleFont = new SKFont { Typeface = _bodyTypeface, Size = TextSize };
 
-        // Only used by body text since it can be scaled
+        // Body and valediction get their own fonts since fitting them to their areas can scale them down
         using var bodyFont = new SKFont { Typeface = _bodyTypeface, Size = TextSize };
+        using var valedictionFont = new SKFont { Typeface = _bodyTypeface, Size = TextSize };
 
         // Setup text colors
         using var paintTitle = new SKPaint { Color = letter.TitleColor, IsAntialias = true };
@@ -60,9 +66,9 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
             ? new SKPaint { Color = letter.TextBackgroundColor.Value, IsAntialias = true }
             : null;
 
-        DrawText(canvas, request.Title, TitlePoint, SKTextAlign.Left, font, paintTitle, paintBackground);
+        DrawText(canvas, request.Title, TitlePoint, SKTextAlign.Left, titleFont, paintTitle, paintBackground);
         DrawBody(canvas, request.Body, bodyFont, paintBody, paintBackground);
-        DrawText(canvas, request.Valediction, ValedictionPoint, SKTextAlign.Right, font, paintValediction, paintBackground);
+        DrawValediction(canvas, request.Valediction, valedictionFont, paintValediction, paintBackground);
 
         using var flatImage = surface.Snapshot();
         using var data = flatImage.Encode(SKEncodedImageFormat.Webp, 90);
@@ -134,6 +140,23 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
     }
 
     /// <summary>
+    /// Draw the valediction <paramref name="text"/> on <paramref name="canvas"/>, scaling
+    /// <paramref name="valedictionFont"/> down a size at a time to keep long valedictions on the card
+    /// </summary>
+    private static void DrawValediction(SKCanvas canvas, string text, SKFont valedictionFont, SKPaint paintText, SKPaint? paintBackground)
+    {
+        // Scaling only buys so much room. Anything still too wide at MinValedictionTextSize runs off the left
+        //   edge of the card, which reads better than a valediction cut off partway through
+        while (valedictionFont.Size - TextSizeStep >= MinValedictionTextSize
+               && TextHelpers.GetLineWidth(text, valedictionFont) > ValedictionMaxWidth)
+        {
+            valedictionFont.Size -= TextSizeStep;
+        }
+
+        DrawText(canvas, text, ValedictionPoint, SKTextAlign.Right, valedictionFont, paintText, paintBackground);
+    }
+
+    /// <summary>
     /// Draw <paramref name="text"/> on the given <paramref name="canvas"/> at the supplied <paramref name="point"/>
     /// with background <paramref name="paintBackground"/> if defined
     /// </summary>
@@ -198,7 +221,7 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
             }
 
             // If we cant reduce font size anymore, just cut all the lines after the lineLimit
-            if (font.Size - BodyTextSizeStep < MinBodyTextSize)
+            if (font.Size - TextSizeStep < MinBodyTextSize)
             {
                 lines.RemoveRange(lineLimit, lines.Count - lineLimit);
                 return (lines, font);
@@ -206,7 +229,7 @@ public class LetterRenderer(IStationarySource stationarySource) : ILetterRendere
 
             // If we got here then text drawn with the current font size exceeded the line limit, so reduce font
             //   size and try again
-            font.Size -= BodyTextSizeStep;
+            font.Size -= TextSizeStep;
         }
     }
 }
