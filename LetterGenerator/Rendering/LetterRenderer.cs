@@ -8,7 +8,7 @@ namespace LetterGenerator.Rendering;
 /// <summary>
 /// Draws a letter onto a randomly chosen template with SkiaSharp.
 /// </summary>
-public class LetterRenderer(IStationarySource stationarySource, IEmojiCatalog emojiCatalog) : ILetterRenderer
+public class LetterRenderer(IStationerySource stationerySource, IEmojiCatalog emojiCatalog) : ILetterRenderer
 {
     private static readonly SKPoint TitlePoint = new(150.0f, 110.0f);
     private static readonly SKRect BodyArea = new(200.0f, 200.0f, 1030.0f, 580.0f);
@@ -40,8 +40,8 @@ public class LetterRenderer(IStationarySource stationarySource, IEmojiCatalog em
         var (letterType, letter) = LetterTemplates.GetRandomLetter();
 
         // Get the background image
-        await using var stationary = await stationarySource.OpenStationary(letterType, cancellationToken);
-        using var bitmap = SKBitmap.Decode(stationary)
+        await using var stationery = await stationerySource.OpenStationery(letterType, cancellationToken);
+        using var bitmap = SKBitmap.Decode(stationery)
             ?? throw new InvalidOperationException(
                 $"Failed to decode the letter template image '{letterType}'.");
 
