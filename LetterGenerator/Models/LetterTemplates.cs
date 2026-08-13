@@ -317,12 +317,15 @@ public static class LetterTemplates
         }
     }.ToFrozenDictionary(entry => entry.Key, entry => new LetterTemplate(entry.Value));
 
-    public static (LetterType, LetterTemplate) GetRandomLetter()
+    public static LetterTemplate GetLetter(LetterType letterType) => Metadata[letterType];
+
+    public static LetterType GetRandomLetter() => GetRandomLetter(DateTime.Now);
+
+    public static LetterType GetRandomLetter(DateTime dateTime)
     {
-        var availableLetters = GetAvailableLetters(DateTime.Now).ToList();
+        var availableLetters = GetAvailableLetters(dateTime).ToList();
         var randomIndex = Random.Shared.Next(availableLetters.Count);
-        var randomLetter = availableLetters[randomIndex];
-        return (randomLetter.Key, randomLetter.Value);
+        return availableLetters[randomIndex].Key;
     }
 
     public static IEnumerable<KeyValuePair<LetterType, LetterTemplate>> GetAvailableLetters(DateTime dateTime)

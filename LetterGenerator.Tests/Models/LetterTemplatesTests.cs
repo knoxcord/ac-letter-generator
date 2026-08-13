@@ -86,6 +86,41 @@ public class LetterTemplatesTests
         Assert.That(startOfDay, Is.EquivalentTo(endOfDay));
     }
 
+    /// <summary>
+    /// <see cref="LetterTemplates.GetLetter"/> indexes straight into the metadata, so a letter type
+    /// without an entry would be a 500 rather than a miss.
+    /// </summary>
+    [Test]
+    public void Metadata_CoversEveryLetterType()
+    {
+        Assert.That(LetterTemplates.Metadata.Keys, Is.EquivalentTo(Enum.GetValues<LetterType>()));
+    }
+
+    /// <summary>
+    /// The random pick indexes into the available letters, so a day with none available would throw
+    /// rather than return nothing.
+    /// </summary>
+    [Test]
+    public void GetAvailableLetters_IsNeverEmpty_OnAnyDayOfTheYear()
+    {
+        var emptyDays = DaysOfYear.Where(day => AvailableOn(day).Count == 0);
+
+        Assert.That(emptyDays, Is.Empty);
+    }
+
+    [TestCase(01, 15, TestName = "GetRandomLetter_OnlyReturnsLettersInSeason_InWinter")]
+    [TestCase(07, 15, TestName = "GetRandomLetter_OnlyReturnsLettersInSeason_InSummer")]
+    public void GetRandomLetter_OnlyReturnsLettersInSeason(int month, int day)
+    {
+        var date = new DateTime(Year, month, day);
+        var available = AvailableOn(date);
+
+        // Enough draws to make an out of season letter slipping through very unlikely to be missed
+        var drawn = Enumerable.Range(0, 500).Select(_ => LetterTemplates.GetRandomLetter(date)).ToHashSet();
+
+        Assert.That(drawn, Is.SubsetOf(available));
+    }
+
     private static HashSet<LetterType> AvailableOn(DateTime date) =>
         [.. LetterTemplates.GetAvailableLetters(date).Select(letter => letter.Key)];
 

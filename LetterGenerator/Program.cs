@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using LetterGenerator.Configuration;
 using LetterGenerator.DTOs;
 using LetterGenerator.Interfaces;
@@ -9,6 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter(namingPolicy: null, allowIntegerValues: false)));
 builder.Services.Configure<LetterTemplateConfiguration>(
     builder.Configuration.GetSection(LetterTemplateConfiguration.SectionName));
 builder.Services.AddSingleton<IStationerySource, LocalStationerySource>();
@@ -31,12 +34,21 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUi(settings => settings.DocumentPath = "/openapi/v1.json");
 }
 
-app.MapPost("/letter", async (GenerateLetterRequest request, ILetterRenderer renderer, CancellationToken cancellationToken) =>
+app.MapPost("/letter", async (GenerateLetterRequest request, ILetterRenderer renderer, HttpResponse response, CancellationToken cancellationToken) =>
     {
-        byte[] image = await renderer.RenderAsync(request, cancellationToken);
-        return Results.File(image, "image/webp", "letter.webp");
+        var letter = await renderer.RenderAsync(request, request.Stationery, cancellationToken);
+
+        // Reported whether it was asked for or picked at random, so the caller can always keep hold of it
+        response.Headers[LetterHeaders.Stationery] = letter.Stationery.ToString();
+
+        return Results.File(letter.Image, "image/webp", "letter.webp");
     })
     .WithName("GenerateLetter")
+    .WithDescription($"Draws the letter and responds with the image. The {LetterHeaders.Stationery} response " +
+                     "header names the stationery used; send it back as 'stationery' to draw on that same one again.")
     .Produces(StatusCodes.Status200OK, contentType: "image/webp");
 
 app.Run();
+
+// Top level statements compile to an internal Program, which WebApplicationFactory cannot reach
+public partial class Program;
