@@ -12,12 +12,14 @@ builder.Services.AddOpenApi();
 builder.Services.Configure<LetterTemplateConfiguration>(
     builder.Configuration.GetSection(LetterTemplateConfiguration.SectionName));
 builder.Services.AddSingleton<IStationarySource, LocalStationarySource>();
+builder.Services.AddSingleton<IEmojiCatalog, EmojiCatalog>();
 builder.Services.AddSingleton<ILetterRenderer, LetterRenderer>();
 
 var app = builder.Build();
 
 // Resolved eagerly so failures happen at startup rather than upon first request
 app.Services.GetRequiredService<IStationarySource>();
+app.Services.GetRequiredService<IEmojiCatalog>();
 app.Services.GetRequiredService<ILetterRenderer>();
 
 // Configure the HTTP request pipeline.
