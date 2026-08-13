@@ -8,12 +8,12 @@ namespace LetterGenerator.Rendering;
 /// <summary>
 /// Serves templates from a directory on disk: the project's Images folder
 /// </summary>
-public class LocalStationarySource : IStationarySource
+public class LocalStationerySource : IStationerySource
 {
     private const string FileExtension = ".webp";
     private readonly string _directory;
 
-    public LocalStationarySource(IOptions<LetterTemplateConfiguration> options, IWebHostEnvironment environment)
+    public LocalStationerySource(IOptions<LetterTemplateConfiguration> options, IWebHostEnvironment environment)
     {
         var configured = options.Value.DirectoryPath;
         _directory = Path.IsPathRooted(configured)
@@ -35,7 +35,7 @@ public class LocalStationarySource : IStationarySource
         }
     }
 
-    public Task<Stream> OpenStationary(LetterType letterType, CancellationToken cancellationToken = default)
+    public Task<Stream> OpenStationery(LetterType letterType, CancellationToken cancellationToken = default)
     {
         var fileName = $"{letterType}{FileExtension}";
         var stream = File.OpenRead(Path.Combine(_directory, fileName));

@@ -10,10 +10,17 @@ Text is scaled and wrapped to fit the card, and emoji are drawn as Twemoji artwo
 
 ```
 POST /letter
-{ "title": "...", "body": "...", "valediction": "..." }
+{ "title": "...", "body": "...", "valediction": "...", "stationery": "Snowflake" }
 ```
 
-Responds with `image/webp`. In development, Swagger UI is served at `/swagger`.
+Responds with `image/webp`. The `Letter-Stationery` response header names the stationery used.
+
+`stationery` is optional; leave it out and one in season is picked at random. Send back a name from
+the header to draw on that same stationery again — useful for redrawing a letter with a different
+valediction without the design changing. A named stationery is used whether it is in season or not,
+and an unknown one is a 400 rather than a silent fallback to random.
+
+In development, Swagger UI is served at `/swagger`.
 
 ## Running
 

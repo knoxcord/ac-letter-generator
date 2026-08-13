@@ -8,7 +8,7 @@ namespace LetterGenerator.Rendering;
 /// <summary>
 /// Draws a letter onto a randomly chosen template with SkiaSharp.
 /// </summary>
-public class LetterRenderer(IStationarySource stationarySource, IEmojiCatalog emojiCatalog) : ILetterRenderer
+public class LetterRenderer(IStationerySource stationerySource, IEmojiCatalog emojiCatalog) : ILetterRenderer
 {
     private static readonly SKPoint TitlePoint = new(150.0f, 110.0f);
     private static readonly SKRect BodyArea = new(200.0f, 200.0f, 1030.0f, 580.0f);
@@ -35,13 +35,16 @@ public class LetterRenderer(IStationarySource stationarySource, IEmojiCatalog em
         ?? throw new InvalidOperationException(
             "Could not load Fonts/SeuratProB.otf from the output directory.");
 
-    public async Task<byte[]> RenderAsync(GenerateLetterRequest request, CancellationToken cancellationToken = default)
+    public async Task<RenderedLetter> RenderAsync(GenerateLetterRequest request, LetterType? stationery = null, CancellationToken cancellationToken = default)
     {
-        var (letterType, letter) = LetterTemplates.GetRandomLetter();
+        // A requested stationery deliberately skips the seasonal filter, so a letter saved in December
+        //   still redraws on the same design in July
+        var letterType = stationery ?? LetterTemplates.GetRandomLetter();
+        var letter = LetterTemplates.GetLetter(letterType);
 
         // Get the background image
-        await using var stationary = await stationarySource.OpenStationary(letterType, cancellationToken);
-        using var bitmap = SKBitmap.Decode(stationary)
+        await using var stationeryImage = await stationerySource.OpenStationery(letterType, cancellationToken);
+        using var bitmap = SKBitmap.Decode(stationeryImage)
             ?? throw new InvalidOperationException(
                 $"Failed to decode the letter template image '{letterType}'.");
 
@@ -73,7 +76,7 @@ public class LetterRenderer(IStationarySource stationarySource, IEmojiCatalog em
         using var flatImage = surface.Snapshot();
         using var data = flatImage.Encode(SKEncodedImageFormat.Webp, 90);
 
-        return data.ToArray();
+        return new RenderedLetter(letterType, data.ToArray());
     }
 
     /// <summary>
