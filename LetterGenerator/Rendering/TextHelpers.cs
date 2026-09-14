@@ -14,6 +14,21 @@ public static partial class TextHelpers
     private static readonly SKSamplingOptions EmojiSampling = new(SKCubicResampler.Mitchell);
 
     /// <summary>
+    /// Puts author-supplied text into the form the card draws it in.
+    /// </summary>
+    public static string PrepareText(string text) => StraightenQuotes(RewriteCustomEmoji(text));
+
+    /// <summary>
+    /// Replaces the curly quotes phone keyboards and desktop clients substitute for typed ones with their
+    /// straight equivalents.
+    /// Seurat is a Japanese typeface, so its curly quotes are full width: the mark itself is drawn hard
+    /// against one edge of an em-wide advance, which reads as a stray space beside the word it belongs to.
+    /// </summary>
+    public static string StraightenQuotes(string text) =>
+        text.Replace('\u2018', '\'').Replace('\u2019', '\'')
+            .Replace('\u201C', '"').Replace('\u201D', '"');
+
+    /// <summary>
     /// Rewrites Discord custom emoji markup into its plain <c>:name:</c> shortcode.
     /// Discord modals have no emoji picker, so these only arrive when an author pastes one in. There is no
     /// artwork for them here, and <c>:name:</c> reads as intended where the raw markup reads as a mistake.

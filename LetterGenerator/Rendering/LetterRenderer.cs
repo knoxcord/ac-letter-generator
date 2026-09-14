@@ -70,9 +70,9 @@ public class LetterRenderer(IStationerySource stationerySource, IEmojiCatalog em
             ? new SKPaint { Color = letter.TextBackgroundColor.Value, IsAntialias = true }
             : null;
 
-        DrawText(canvas, TextHelpers.RewriteCustomEmoji(request.Title), TitlePoint, SKTextAlign.Left, titleFont, emojiCatalog, paintTitle, paintBackground);
-        DrawBody(canvas, TextHelpers.RewriteCustomEmoji(request.Body), bodyFont, emojiCatalog, paintBody, paintBackground);
-        DrawValediction(canvas, TextHelpers.RewriteCustomEmoji(request.Valediction), valedictionFont, emojiCatalog, paintValediction, paintBackground);
+        DrawText(canvas, TextHelpers.PrepareText(request.Title), TitlePoint, SKTextAlign.Left, titleFont, emojiCatalog, paintTitle, paintBackground);
+        DrawBody(canvas, TextHelpers.PrepareText(request.Body), bodyFont, emojiCatalog, paintBody, paintBackground);
+        DrawValediction(canvas, TextHelpers.PrepareText(request.Valediction), valedictionFont, emojiCatalog, paintValediction, paintBackground);
 
         using var flatImage = surface.Snapshot();
         using var data = flatImage.Encode(SKEncodedImageFormat.Webp, 90);

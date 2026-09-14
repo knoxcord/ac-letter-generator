@@ -41,6 +41,34 @@ public class TextHelpersTests
         Assert.That(TextHelpers.RewriteCustomEmoji(text), Is.EqualTo(expected));
     }
 
+    [TestCase("I\u2019m home", "I'm home", TestName = "StraightenQuotes_StraightensACurlyApostrophe")]
+    [TestCase("\u2018hi\u2019", "'hi'", TestName = "StraightenQuotes_StraightensCurlySingleQuotes")]
+    [TestCase("\u201Chi\u201D", "\"hi\"", TestName = "StraightenQuotes_StraightensCurlyDoubleQuotes")]
+    [TestCase("it's \"fine\"", "it's \"fine\"", TestName = "StraightenQuotes_LeavesStraightQuotesAlone")]
+    public void StraightenQuotes(string text, string expected)
+    {
+        Assert.That(TextHelpers.StraightenQuotes(text), Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void PrepareText_StraightensQuotesAndRewritesCustomEmoji()
+    {
+        Assert.That(TextHelpers.PrepareText("I\u2019m <:wave:1>"), Is.EqualTo("I'm :wave:"));
+    }
+
+    /// <summary>
+    /// A curly quote is full width in this typeface, so straightening it is what keeps a contraction from
+    /// drawing with most of an em of empty space inside it.
+    /// </summary>
+    [Test]
+    public void GetLineWidth_MeasuresAStraightenedApostropheNarrowerThanACurlyOne()
+    {
+        var curly = TextHelpers.GetLineWidth("I\u2019m", _font, _catalog);
+        var straight = TextHelpers.GetLineWidth(TextHelpers.StraightenQuotes("I\u2019m"), _font, _catalog);
+
+        Assert.That(straight, Is.LessThan(curly));
+    }
+
     /// <summary>
     /// Emoji are drawn square and as tall as the line box rather than measured through the font, which has
     /// no glyph for them at all.
