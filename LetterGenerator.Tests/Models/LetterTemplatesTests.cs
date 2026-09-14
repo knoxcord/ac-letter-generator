@@ -121,6 +121,86 @@ public class LetterTemplatesTests
         Assert.That(drawn, Is.SubsetOf(available));
     }
 
+    [TestCase("Happy Birthday Tom!", TestName = "MatchesKeywords_IgnoresCase")]
+    [TestCase("happy bday!", TestName = "MatchesKeywords_MatchesEveryKeywordInTheList")]
+    [TestCase("It's Tom's b-day", TestName = "MatchesKeywords_MatchesKeywordsContainingPunctuation")]
+    // A bare substring match is deliberate, so wording around the keyword does not have to be anticipated
+    [TestCase("two birthdays this week", TestName = "MatchesKeywords_MatchesAPluralisedKeyword")]
+    [TestCase("come to the birthdayparty", TestName = "MatchesKeywords_MatchesAKeywordRunTogetherWithAnotherWord")]
+    public void MatchesKeywords_MatchesBirthdayWording(string letterText)
+    {
+        Assert.That(LetterTemplates.Metadata[LetterType.BirthdayCake].MatchesKeywords(letterText), Is.True);
+    }
+
+    [TestCase("")]
+    [TestCase("The bridge repairs are finished")]
+    public void MatchesKeywords_DoesNotMatchUnrelatedText(string letterText)
+    {
+        Assert.That(LetterTemplates.Metadata[LetterType.BirthdayCake].MatchesKeywords(letterText), Is.False);
+    }
+
+    /// <summary>
+    /// Keywords are opt-in, so a template without them must never be boosted no matter what the letter says.
+    /// </summary>
+    [Test]
+    public void MatchesKeywords_IsFalse_ForTemplatesWithoutKeywords()
+    {
+        var boosted = LetterTemplates.Metadata
+            .Where(letter => letter.Key != LetterType.BirthdayCake)
+            .Where(letter => letter.Value.MatchesKeywords("Happy Birthday Tom! bday b-day"))
+            .Select(letter => letter.Key);
+
+        Assert.That(boosted, Is.Empty);
+    }
+
+    private const string UnrelatedText = "The bridge repairs are finished";
+    private const string BirthdayText = "Happy Birthday Tom!";
+
+    [TestCase(LetterType.Common, UnrelatedText, LetterTemplates.DefaultWeight, TestName = "GetWeight_IsUnboostedForAYearRoundLetter")]
+    [TestCase(LetterType.Halloween, UnrelatedText, LetterTemplates.SeasonalWeight, TestName = "GetWeight_BoostsASeasonalLetter")]
+    [TestCase(LetterType.BirthdayCake, BirthdayText, LetterTemplates.KeywordWeight, TestName = "GetWeight_BoostsAKeywordMatch")]
+    [TestCase(LetterType.BirthdayCake, UnrelatedText, LetterTemplates.DefaultWeight, TestName = "GetWeight_DoesNotBoostAKeywordLetterWithoutAMatch")]
+    public void GetWeight_MatchesTheTier(LetterType letterType, string letterText, int expected)
+    {
+        var weight = LetterTemplates.GetWeight(LetterTemplates.Metadata[letterType], letterText);
+
+        Assert.That(weight, Is.EqualTo(expected));
+    }
+
+    /// <summary>
+    /// The tier assertions above cover the weights themselves; this covers the draw actually honouring them.
+    /// The bound is the share a keyword match would win if weights were ignored, scaled up by a wide margin
+    /// to keep the test off the knife edge of its real expectation.
+    /// </summary>
+    [Test]
+    public void GetRandomLetter_UsuallyDrawsAKeywordMatch()
+    {
+        var date = new DateTime(Year, 7, 15);
+        const int draws = 2000;
+        var unweightedShare = (double)draws / AvailableOn(date).Count;
+
+        var cakes = Enumerable.Range(0, draws)
+            .Count(_ => LetterTemplates.GetRandomLetter(date, BirthdayText) == LetterType.BirthdayCake);
+
+        Assert.That(cakes, Is.GreaterThan(unweightedShare * 5));
+    }
+
+    /// <summary>
+    /// A keyword boost must not become a guarantee, or m-bot's background reroll would have nothing left
+    /// to reroll to on a letter that mentions a birthday.
+    /// </summary>
+    [Test]
+    public void GetRandomLetter_StillDrawsOtherLetters_WhenAKeywordMatches()
+    {
+        var date = new DateTime(Year, 7, 15);
+
+        var drawn = Enumerable.Range(0, 2000)
+            .Select(_ => LetterTemplates.GetRandomLetter(date, BirthdayText))
+            .ToHashSet();
+
+        Assert.That(drawn, Is.SupersetOf(AvailableOn(date)));
+    }
+
     private static HashSet<LetterType> AvailableOn(DateTime date) =>
         [.. LetterTemplates.GetAvailableLetters(date).Select(letter => letter.Key)];
 

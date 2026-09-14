@@ -40,7 +40,8 @@ public static class LetterTemplates
         },
         [LetterType.BirthdayCake] = new()
         {
-            TitleColor = "#533d15"
+            TitleColor = "#533d15",
+            Keywords = ["birthday", "bday", "b-day"]
         },
         [LetterType.BlueSky] = new()
         {
@@ -319,14 +320,44 @@ public static class LetterTemplates
 
     public static LetterTemplate GetLetter(LetterType letterType) => Metadata[letterType];
 
-    public static LetterType GetRandomLetter() => GetRandomLetter(DateTime.Now);
+    public const int DefaultWeight = 1;
 
-    public static LetterType GetRandomLetter(DateTime dateTime)
+    // Only a handful of the seasonal designs are ever in season at once, so without a boost they are
+    //   drowned out by the year-round ones during the short window where they actually fit
+    public const int SeasonalWeight = 3;
+
+    // Much larger than the seasonal boost because it competes against the whole pool rather than adding
+    //   to a group of them. At the seasonal 3 a matched design would win about 6% of the time, which
+    //   reads as unchanged. This lands nearer a coin flip while still leaving room to draw anything else
+    public const int KeywordWeight = 40;
+
+    public static LetterType GetRandomLetter(string letterText = "") => GetRandomLetter(DateTime.Now, letterText);
+
+    public static LetterType GetRandomLetter(DateTime dateTime, string letterText = "")
     {
         var availableLetters = GetAvailableLetters(dateTime).ToList();
-        var randomIndex = Random.Shared.Next(availableLetters.Count);
-        return availableLetters[randomIndex].Key;
+        var roll = Random.Shared.Next(availableLetters.Sum(letter => GetWeight(letter.Value, letterText)));
+
+        foreach (var letter in availableLetters)
+        {
+            roll -= GetWeight(letter.Value, letterText);
+            if (roll < 0)
+                return letter.Key;
+        }
+
+        // Unreachable while every weight is positive, but returning the last letter beats throwing
+        return availableLetters[^1].Key;
     }
+
+    /// <summary>
+    /// How many times more likely <paramref name="template"/> is to be drawn than a plain year-round one.
+    /// The tiers are exclusive rather than multiplied, so a template that gains both keywords and a
+    /// seasonal range still has one predictable weight
+    /// </summary>
+    public static int GetWeight(LetterTemplate template, string letterText) =>
+        template.MatchesKeywords(letterText) ? KeywordWeight
+        : template.AvailableRange.HasValue ? SeasonalWeight
+        : DefaultWeight;
 
     public static IEnumerable<KeyValuePair<LetterType, LetterTemplate>> GetAvailableLetters(DateTime dateTime)
     {

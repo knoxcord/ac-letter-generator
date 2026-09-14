@@ -4,6 +4,11 @@ A small HTTP service that renders text as an Animal Crossing style letter image,
 bot. It picks a piece of stationery at random — seasonal designs only appear during the part
 of the year they belong to — and draws the title, body and valediction onto it with SkiaSharp.
 
+The draw is weighted rather than even. A design that is in season is favored over a year-round one,
+since only a few are ever in season at once, and a design whose keywords appear in the letter is
+favored much more strongly — mention a birthday and you will usually, though not always, get the
+birthday cake.
+
 Text is scaled and wrapped to fit the card, and emoji are drawn as Twemoji artwork.
 
 ## Usage
@@ -15,7 +20,7 @@ POST /letter
 
 Responds with `image/webp`. The `Letter-Stationery` response header names the stationery used.
 
-`stationery` is optional; leave it out and one in season is picked at random. Send back a name from
+`stationery` is optional; leave it out and one in season is picked as described above. Send back a name from
 the header to draw on that same stationery again — useful for redrawing a letter with a different
 valediction without the design changing. A named stationery is used whether it is in season or not,
 and an unknown one is a 400 rather than a silent fallback to random.

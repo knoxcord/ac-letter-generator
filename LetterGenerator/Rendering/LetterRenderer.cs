@@ -39,7 +39,8 @@ public class LetterRenderer(IStationerySource stationerySource, IEmojiCatalog em
     {
         // A requested stationery deliberately skips the seasonal filter, so a letter saved in December
         //   still redraws on the same design in July
-        var letterType = stationery ?? LetterTemplates.GetRandomLetter();
+        var letterType = stationery
+            ?? LetterTemplates.GetRandomLetter($"{request.Title} {request.Body} {request.Valediction}");
         var letter = LetterTemplates.GetLetter(letterType);
 
         // Get the background image
