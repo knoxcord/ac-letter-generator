@@ -36,7 +36,7 @@ if (app.Environment.IsDevelopment())
 
 app.MapPost("/letter", async (GenerateLetterRequest request, ILetterRenderer renderer, HttpResponse response, CancellationToken cancellationToken) =>
     {
-        var letter = await renderer.RenderAsync(request, request.Stationery, cancellationToken);
+        var letter = await renderer.RenderAsync(request, request.Stationery, request.ExcludeStationery, cancellationToken);
 
         // Reported whether it was asked for or picked at random, so the caller can always keep hold of it
         response.Headers[LetterHeaders.Stationery] = letter.Stationery.ToString();
@@ -45,7 +45,8 @@ app.MapPost("/letter", async (GenerateLetterRequest request, ILetterRenderer ren
     })
     .WithName("GenerateLetter")
     .WithDescription($"Draws the letter and responds with the image. The {LetterHeaders.Stationery} response " +
-                     "header names the stationery used; send it back as 'stationery' to draw on that same one again.")
+                     "header names the stationery used; send it back as 'stationery' to draw on that same one again, " +
+                     "or in 'excludeStationery' to have the random pick avoid it.")
     .Produces(StatusCodes.Status200OK, contentType: "image/webp");
 
 app.Run();

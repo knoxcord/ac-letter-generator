@@ -10,4 +10,8 @@ public readonly record struct LetterTemplateOptions
     /// ints representing MMdd of start and end range
     /// </summary>
     public (int Start, int End)? AvailableRange { get; init; }
+    /// <summary>
+    /// Words that make this stationery more likely to be drawn when they appear in the letter text
+    /// </summary>
+    public string[]? Keywords { get; init; }
 }

@@ -13,4 +13,10 @@ public class LetterTemplate(LetterTemplateOptions options)
     /// </summary>
     public readonly (int Start, int End)? AvailableRange = options.AvailableRange;
 
+    private readonly string[] _keywords = options.Keywords ?? [];
+
+    // Matches on a bare substring so that "birthdays" and "birthdayparty" both count. Keywords therefore
+    //   need to be long enough that they cannot turn up inside an unrelated word
+    public bool MatchesKeywords(string letterText) =>
+        _keywords.Any(keyword => letterText.Contains(keyword, StringComparison.OrdinalIgnoreCase));
 };
