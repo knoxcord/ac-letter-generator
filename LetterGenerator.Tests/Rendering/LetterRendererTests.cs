@@ -68,6 +68,14 @@ public class LetterRendererTests
     }
 
     [Test]
+    public async Task RenderAsync_DrawsOnTheRequestedStationery_EvenWhenItIsAlsoExcluded()
+    {
+        var letter = await _renderer.RenderAsync(Request(), LetterType.Beach, LetterType.Beach);
+
+        Assert.That(letter.Stationery, Is.EqualTo(LetterType.Beach));
+    }
+
+    [Test]
     public async Task RenderAsync_ReturnsADecodableImage()
     {
         var letter = await _renderer.RenderAsync(Request(), LetterType.Common);

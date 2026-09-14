@@ -124,7 +124,6 @@ public class LetterTemplatesTests
     [TestCase("Happy Birthday Tom!", TestName = "MatchesKeywords_IgnoresCase")]
     [TestCase("happy bday!", TestName = "MatchesKeywords_MatchesEveryKeywordInTheList")]
     [TestCase("It's Tom's b-day", TestName = "MatchesKeywords_MatchesKeywordsContainingPunctuation")]
-    // A bare substring match is deliberate, so wording around the keyword does not have to be anticipated
     [TestCase("two birthdays this week", TestName = "MatchesKeywords_MatchesAPluralisedKeyword")]
     [TestCase("come to the birthdayparty", TestName = "MatchesKeywords_MatchesAKeywordRunTogetherWithAnotherWord")]
     public void MatchesKeywords_MatchesBirthdayWording(string letterText)
@@ -199,6 +198,45 @@ public class LetterTemplatesTests
             .ToHashSet();
 
         Assert.That(drawn, Is.SupersetOf(AvailableOn(date)));
+    }
+
+    [TestCase(LetterType.Common, TestName = "GetAvailableLetters_OmitsAnExcludedYearRoundLetter")]
+    [TestCase(LetterType.Beach, TestName = "GetAvailableLetters_OmitsAnExcludedSeasonalLetter")]
+    public void GetAvailableLetters_OmitsTheExcludedLetter(LetterType excluded)
+    {
+        var date = new DateTime(Year, 7, 15);
+
+        var available = LetterTemplates.GetAvailableLetters(date, excluded).Select(letter => letter.Key);
+
+        Assert.That(available, Is.EquivalentTo(AvailableOn(date).Except([excluded])));
+    }
+
+    /// <summary>
+    /// The birthday wording makes the excluded cake the likeliest draw of all, so this holds the
+    /// exclusion above the keyword boost, not just against the plain odds.
+    /// </summary>
+    [Test]
+    public void GetRandomLetter_NeverDrawsTheExcludedLetter()
+    {
+        var date = new DateTime(Year, 7, 15);
+
+        var drawn = Enumerable.Range(0, 500)
+            .Select(_ => LetterTemplates.GetRandomLetter(date, BirthdayText, LetterType.BirthdayCake))
+            .ToHashSet();
+
+        Assert.That(drawn, Does.Not.Contain(LetterType.BirthdayCake));
+    }
+
+    [Test]
+    public void GetRandomLetter_StillDrawsEveryOtherLetterInSeason()
+    {
+        var date = new DateTime(Year, 7, 15);
+
+        var drawn = Enumerable.Range(0, 2000)
+            .Select(_ => LetterTemplates.GetRandomLetter(date, BirthdayText, LetterType.BirthdayCake))
+            .ToHashSet();
+
+        Assert.That(drawn, Is.EquivalentTo(AvailableOn(date).Except([LetterType.BirthdayCake])));
     }
 
     private static HashSet<LetterType> AvailableOn(DateTime date) =>

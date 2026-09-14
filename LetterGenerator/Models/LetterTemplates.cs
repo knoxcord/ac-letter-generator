@@ -324,18 +324,18 @@ public static class LetterTemplates
 
     // Only a handful of the seasonal designs are ever in season at once, so without a boost they are
     //   drowned out by the year-round ones during the short window where they actually fit
-    public const int SeasonalWeight = 3;
+    public const int SeasonalWeight = 5;
 
     // Much larger than the seasonal boost because it competes against the whole pool rather than adding
-    //   to a group of them. At the seasonal 3 a matched design would win about 6% of the time, which
-    //   reads as unchanged. This lands nearer a coin flip while still leaving room to draw anything else
-    public const int KeywordWeight = 40;
+    //   to a group of them
+    public const int KeywordWeight = 20;
 
-    public static LetterType GetRandomLetter(string letterText = "") => GetRandomLetter(DateTime.Now, letterText);
+    public static LetterType GetRandomLetter(string letterText = "", LetterType? excluded = null) =>
+        GetRandomLetter(DateTime.Now, letterText, excluded);
 
-    public static LetterType GetRandomLetter(DateTime dateTime, string letterText = "")
+    public static LetterType GetRandomLetter(DateTime dateTime, string letterText = "", LetterType? excluded = null)
     {
-        var availableLetters = GetAvailableLetters(dateTime).ToList();
+        var availableLetters = GetAvailableLetters(dateTime, excluded).ToList();
         var roll = Random.Shared.Next(availableLetters.Sum(letter => GetWeight(letter.Value, letterText)));
 
         foreach (var letter in availableLetters)
@@ -345,24 +345,26 @@ public static class LetterTemplates
                 return letter.Key;
         }
 
-        // Unreachable while every weight is positive, but returning the last letter beats throwing
+        // Unreachable while every weight stays positive, and the last letter is a safe answer if one does not
         return availableLetters[^1].Key;
     }
 
     /// <summary>
     /// How many times more likely <paramref name="template"/> is to be drawn than a plain year-round one.
-    /// The tiers are exclusive rather than multiplied, so a template that gains both keywords and a
-    /// seasonal range still has one predictable weight
+    /// Only the highest tier a template reaches applies, so one with both keywords and a seasonal range
+    /// still has a single predictable weight
     /// </summary>
     public static int GetWeight(LetterTemplate template, string letterText) =>
         template.MatchesKeywords(letterText) ? KeywordWeight
         : template.AvailableRange.HasValue ? SeasonalWeight
         : DefaultWeight;
 
-    public static IEnumerable<KeyValuePair<LetterType, LetterTemplate>> GetAvailableLetters(DateTime dateTime)
+    /// <param name="excluded">Stationery to leave out of the result, on top of anything out of season</param>
+    public static IEnumerable<KeyValuePair<LetterType, LetterTemplate>> GetAvailableLetters(
+        DateTime dateTime, LetterType? excluded = null)
     {
         var date = dateTime.Month * 100 + dateTime.Day;
-        return Metadata.Where(metadata => IsAvailable(metadata.Value, date));
+        return Metadata.Where(metadata => IsAvailable(metadata.Value, date) && metadata.Key != excluded);
     }
 
     private static bool IsAvailable(LetterTemplate template, int date)

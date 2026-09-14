@@ -15,7 +15,8 @@ Text is scaled and wrapped to fit the card, and emoji are drawn as Twemoji artwo
 
 ```
 POST /letter
-{ "title": "...", "body": "...", "valediction": "...", "stationery": "Snowflake" }
+{ "title": "...", "body": "...", "valediction": "...", "stationery": "Snowflake",
+  "excludeStationery": "Beach" }
 ```
 
 Responds with `image/webp`. The `Letter-Stationery` response header names the stationery used.
@@ -24,6 +25,10 @@ Responds with `image/webp`. The `Letter-Stationery` response header names the st
 the header to draw on that same stationery again — useful for redrawing a letter with a different
 valediction without the design changing. A named stationery is used whether it is in season or not,
 and an unknown one is a 400 rather than a silent fallback to random.
+
+`excludeStationery` is optional too, and does the opposite: the named stationery is kept out of the
+random pick, which is how a reroll avoids landing on the design it just drew. It is subsidiary to
+`stationery` — naming the same one in both draws on it rather than refusing.
 
 In development, Swagger UI is served at `/swagger`.
 

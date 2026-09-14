@@ -35,12 +35,12 @@ public class LetterRenderer(IStationerySource stationerySource, IEmojiCatalog em
         ?? throw new InvalidOperationException(
             "Could not load Fonts/SeuratProB.otf from the output directory.");
 
-    public async Task<RenderedLetter> RenderAsync(GenerateLetterRequest request, LetterType? stationery = null, CancellationToken cancellationToken = default)
+    public async Task<RenderedLetter> RenderAsync(GenerateLetterRequest request, LetterType? stationery = null, LetterType? excludeStationery = null, CancellationToken cancellationToken = default)
     {
         // A requested stationery deliberately skips the seasonal filter, so a letter saved in December
         //   still redraws on the same design in July
         var letterType = stationery
-            ?? LetterTemplates.GetRandomLetter($"{request.Title} {request.Body} {request.Valediction}");
+            ?? LetterTemplates.GetRandomLetter($"{request.Title} {request.Body} {request.Valediction}", excludeStationery);
         var letter = LetterTemplates.GetLetter(letterType);
 
         // Get the background image

@@ -108,6 +108,55 @@ public class LetterEndpointTests
     }
 
     /// <summary>
+    /// Birthday wording puts the excluded cake at about a quarter of draws, so 25 requests make an
+    /// exclusion that never reached the draw all but certain to show up.
+    /// </summary>
+    [Test]
+    public async Task Post_KeepsTheExcludedStationeryOutOfTheRandomPick()
+    {
+        var drawn = new List<string?>();
+        for (var request = 0; request < 25; request++)
+            drawn.Add(Stationery(await PostLetter(new
+            {
+                title = "Hi",
+                body = "Happy Birthday Tom!",
+                valediction = "Love, Matt",
+                excludeStationery = nameof(LetterType.BirthdayCake),
+            })));
+
+        Assert.That(drawn, Does.Not.Contain(nameof(LetterType.BirthdayCake)));
+    }
+
+    /// <summary>
+    /// Asking for a stationery is the stronger instruction of the two, so excluding the same one is not a
+    /// contradiction the caller has to resolve before sending.
+    /// </summary>
+    [Test]
+    public async Task Post_DrawsOnTheStationeryAskedFor_EvenWhenItIsAlsoExcluded()
+    {
+        var response = await PostLetter(new
+        {
+            title = "Hi",
+            body = "Test",
+            valediction = "Love, Matt",
+            stationery = nameof(LetterType.Snowflake),
+            excludeStationery = nameof(LetterType.Snowflake),
+        });
+
+        Assert.That(Stationery(response), Is.EqualTo(nameof(LetterType.Snowflake)));
+    }
+
+    [Test]
+    public async Task Post_RejectsAnUnusableStationery_InTheExclusion()
+    {
+        const string body = """{"title":"Hi","body":"Test","valediction":"Love","excludeStationery":"Snowfalke"}""";
+
+        var response = await _client.PostAsync("/letter", new StringContent(body, System.Text.Encoding.UTF8, "application/json"));
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+    }
+
+    /// <summary>
     /// The three field body callers sent before stationery existed has to keep working untouched.
     /// </summary>
     [Test]
